@@ -1,0 +1,30 @@
+name: YouTube uploader
+
+on:
+  schedule:
+    - cron: "0 10 * * *"  # 10:00 UTC
+    - cron: "0 14 * * *"  # 14:00 UTC
+    - cron: "0 18 * * *"  # 18:00 UTC
+    - cron: "0 22 * * *"  # 22:00 UTC
+  workflow_dispatch: {}     # ручной запуск из вкладки Actions
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Restore YouTube token
+        run: echo "${{ secrets.YT_TOKEN }}" > token.json
+      - name: Run bot
+        env:
+          TG_API_ID: ${{ secrets.TG_API_ID }}
+          TG_API_HASH: ${{ secrets.TG_API_HASH }}
+          TG_SESSION: ${{ secrets.TG_SESSION }}
+          TG_CHANNEL: ${{ secrets.TG_CHANNEL }}
+        run: python bot.py
