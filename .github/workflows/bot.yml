@@ -1,39 +1,35 @@
-name: Upload Anime Edits
+name: Run bot
 
 on:
   schedule:
-    - cron: "0 5 * * *"   # 10:00
-    - cron: "0 9 * * *"   # 14:00
-    - cron: "0 15 * * *"   # 22:00
-  workflow_dispatch:
+    - cron: "0 7 * * *"   # 10:00 МСК
+    - cron: "0 11 * * *"  # 14:00 МСК
+    - cron: "0 19 * * *"  # 22:00 МСК
+  workflow_dispatch:       # возможность запускать вручную
 
 jobs:
-  upload:
+  build:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
 
-      - name: Setup Python
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false   # 🚫 запрещаем git push
+
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Restore YouTube token
-        run: echo '${{ secrets.YT_TOKEN }}' > token.json
-
       - name: Run bot
         env:
-          TG_API_ID: ${{ secrets.TG_API_ID }}
-          TG_API_HASH: ${{ secrets.TG_API_HASH }}
-          TG_SESSION: ${{ secrets.TG_SESSION }}
+          API_ID: ${{ secrets.API_ID }}
+          API_HASH: ${{ secrets.API_HASH }}
           TG_CHANNEL: ${{ secrets.TG_CHANNEL }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_TOKEN: ${{ secrets.YT_TOKEN }}
         run: python bot.py
-
-      - name: Save counter
-        uses: EndBug/add-and-commit@v9
-        with:
-          add: 'counter.json'
-          message: 'update counter'
