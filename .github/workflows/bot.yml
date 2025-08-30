@@ -2,9 +2,9 @@ name: Upload Anime Edits
 
 on:
   schedule:
-    - cron: "0 10 * * *"   # 10:00
-    - cron: "0 14 * * *"   # 14:00
-    - cron: "0 22 * * *"   # 22:00
+    - cron: "0 5 * * *"   # 10:00
+    - cron: "0 9 * * *"   # 14:00
+    - cron: "0 15 * * *"   # 22:00
   workflow_dispatch:
 
 jobs:
