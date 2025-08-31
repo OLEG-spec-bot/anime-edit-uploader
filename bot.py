@@ -6,10 +6,11 @@ from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
 # --- Telegram auth ---
-api_id = int(os.environ["API_ID"])
-api_hash = os.environ["API_HASH"]
-session_str = os.environ["TG_SESSION"]
+api_id = int(os.environ["TG_API_ID"])
+api_hash = os.environ["TG_API_HASH"]
 channel = os.environ["TG_CHANNEL"]
+session = os.environ["TG_SESSION"]
+yt_token = os.environ["YT_TOKEN"]
 
 client = TelegramClient(StringSession(session_str), api_id, api_hash)
 
