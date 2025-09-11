@@ -4,26 +4,30 @@ from telethon import TelegramClient
 from telethon.sessions import StringSession
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
+from googleapiclient.http import MediaFileUpload
 
 # --- Telegram auth ---
 api_id = int(os.environ["TG_API_ID"])
 api_hash = os.environ["TG_API_HASH"]
 channel = os.environ["TG_CHANNEL"]
-session = os.environ["TG_SESSION"]
+session_str = os.environ["TG_SESSION"]
 yt_token = os.environ["YT_TOKEN"]
 
 client = TelegramClient(StringSession(session_str), api_id, api_hash)
 
 # --- YouTube auth ---
 creds = Credentials.from_authorized_user_info(
-    json.loads(open("token.json").read())
+    json.loads(yt_token)  # берем токен из Secrets
 )
 
 youtube = build("youtube", "v3", credentials=creds)
 
 # --- Counter ---
-with open("counter.json", "r") as f:
-    counter = json.load(f)
+if os.path.exists("counter.json"):
+    with open("counter.json", "r") as f:
+        counter = json.load(f)
+else:
+    counter = {"count": 1}
 
 count = counter["count"]
 
@@ -47,7 +51,7 @@ async def main():
                         "selfDeclaredMadeForKids": False
                     }
                 },
-                media_body=path
+                media_body=MediaFileUpload(path, resumable=True)  # фикс загрузки
             )
             request.execute()
             print(f"✅ Загружено: Anime edit #{count}")
