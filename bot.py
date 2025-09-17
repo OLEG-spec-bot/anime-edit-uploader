@@ -1,5 +1,6 @@
 import os
 import json
+import random
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 from googleapiclient.discovery import build
@@ -17,7 +18,7 @@ client = TelegramClient(StringSession(session_str), api_id, api_hash)
 
 # --- YouTube auth ---
 creds = Credentials.from_authorized_user_info(
-    json.loads(yt_token)  # берем токен из Secrets
+    json.loads(yt_token)
 )
 
 youtube = build("youtube", "v3", credentials=creds)
@@ -31,18 +32,45 @@ else:
 
 count = counter["count"]
 
+# --- Список шаблонов названий ---
+TITLES = [
+    "Epic Anime Edit #{num}",
+    "🔥 Best Anime Moments #{num}",
+    "Sad Anime Edit #{num}",
+    "Emotional Anime Scene #{num}",
+    "AMV Edit #{num}",
+    "Legendary Anime Edit #{num}",
+    "Anime Fight Scene #{num}",
+    "Cool Anime Transitions #{num}",
+    "Anime Music Video #{num}",
+    "Top Anime Edit #{num}"
+]
+
+# --- Список описаний ---
+DESCRIPTIONS = [
+    "Лучшие аниме эдиты для тебя 🚀",
+    "Подпишись на канал, если любишь аниме ❤️",
+    "Самые красивые сцены в аниме 🎬",
+    "Эмоции в каждом кадре ✨",
+    "Anime edits for true fans 💯"
+]
+
 async def main():
     global count
     async for message in client.iter_messages(channel, limit=1):
         if message.video or (message.document and message.document.mime_type.startswith("video")):
             path = await message.download_media(file="video.mp4")
 
+            # случайный выбор названия и описания
+            title = random.choice(TITLES).format(num=count)
+            description = random.choice(DESCRIPTIONS)
+
             request = youtube.videos().insert(
                 part="snippet,status",
                 body={
                     "snippet": {
-                        "title": f"Anime edit #{count}",
-                        "description": "Best anime edits 🚀",
+                        "title": title,
+                        "description": description,
                         "tags": ["anime", "edit", "shorts"],
                         "categoryId": "22"
                     },
@@ -51,10 +79,10 @@ async def main():
                         "selfDeclaredMadeForKids": False
                     }
                 },
-                media_body=MediaFileUpload(path, resumable=True)  # фикс загрузки
+                media_body=MediaFileUpload(path, resumable=True)
             )
             request.execute()
-            print(f"✅ Загружено: Anime edit #{count}")
+            print(f"✅ Загружено: {title}")
             count += 1
 
     # обновляем счётчик
@@ -63,3 +91,4 @@ async def main():
 
 with client:
     client.loop.run_until_complete(main())
+
