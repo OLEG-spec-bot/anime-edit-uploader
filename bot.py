@@ -10,17 +10,14 @@ from googleapiclient.http import MediaFileUpload
 # --- Telegram auth ---
 api_id = int(os.environ["TG_API_ID"])
 api_hash = os.environ["TG_API_HASH"]
-channel = os.environ["TG_CHANNEL"]
+channel = os.environ["TG_CHANNEL"]  # может быть @username или ссылка на приватный канал
 session_str = os.environ["TG_SESSION"]
 yt_token = os.environ["YT_TOKEN"]
 
 client = TelegramClient(StringSession(session_str), api_id, api_hash)
 
 # --- YouTube auth ---
-creds = Credentials.from_authorized_user_info(
-    json.loads(yt_token)
-)
-
+creds = Credentials.from_authorized_user_info(json.loads(yt_token))
 youtube = build("youtube", "v3", credentials=creds)
 
 # --- Counter ---
@@ -57,7 +54,18 @@ DESCRIPTIONS = [
 
 async def main():
     global count
-    async for message in client.iter_messages(channel, limit=1):
+
+    # безопасное получение entity (работает и для приватных каналов)
+    try:
+        if "t.me/" in channel:
+            entity = await client.get_entity(channel)
+        else:
+            entity = await client.get_entity(channel)
+    except Exception as e:
+        print(f"❌ Ошибка при получении канала: {e}")
+        return
+
+    async for message in client.iter_messages(entity, limit=1):
         if message.video or (message.document and message.document.mime_type.startswith("video")):
             path = await message.download_media(file="video.mp4")
 
@@ -65,6 +73,7 @@ async def main():
             title = random.choice(TITLES).format(num=count)
             description = random.choice(DESCRIPTIONS)
 
+            # загрузка видео на YouTube
             request = youtube.videos().insert(
                 part="snippet,status",
                 body={
@@ -91,4 +100,3 @@ async def main():
 
 with client:
     client.loop.run_until_complete(main())
-
