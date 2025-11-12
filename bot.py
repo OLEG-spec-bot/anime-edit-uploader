@@ -10,7 +10,7 @@ from googleapiclient.http import MediaFileUpload
 # --- Telegram auth ---
 api_id = int(os.environ["TG_API_ID"])
 api_hash = os.environ["TG_API_HASH"]
-channel = os.environ["TG_CHANNEL"]  # может быть @username или ссылка на приватный канал
+channel = os.environ["TG_CHANNEL"]  # ID канала, например: -1002193847502
 session_str = os.environ["TG_SESSION"]
 yt_token = os.environ["YT_TOKEN"]
 
@@ -29,7 +29,6 @@ else:
 
 count = counter["count"]
 
-# --- Список шаблонов названий ---
 TITLES = [
     "Epic Anime Edit #{num}",
     "🔥 Best Anime Moments #{num}",
@@ -43,7 +42,6 @@ TITLES = [
     "Top Anime Edit #{num}"
 ]
 
-# --- Список описаний ---
 DESCRIPTIONS = [
     "Лучшие аниме эдиты для тебя 🚀",
     "Подпишись на канал, если любишь аниме ❤️",
@@ -54,13 +52,8 @@ DESCRIPTIONS = [
 
 async def main():
     global count
-
-    # безопасное получение entity (работает и для приватных каналов)
     try:
-        if "t.me/" in channel:
-            entity = await client.get_entity(channel)
-        else:
-            entity = await client.get_entity(channel)
+        entity = await client.get_entity(int(channel))  # теперь берёт по ID
     except Exception as e:
         print(f"❌ Ошибка при получении канала: {e}")
         return
@@ -69,11 +62,13 @@ async def main():
         if message.video or (message.document and message.document.mime_type.startswith("video")):
             path = await message.download_media(file="video.mp4")
 
-            # случайный выбор названия и описания
+            if not os.path.exists(path):
+                print("❌ Видео не скачалось — пропуск.")
+                return
+
             title = random.choice(TITLES).format(num=count)
             description = random.choice(DESCRIPTIONS)
 
-            # загрузка видео на YouTube
             request = youtube.videos().insert(
                 part="snippet,status",
                 body={
@@ -94,7 +89,6 @@ async def main():
             print(f"✅ Загружено: {title}")
             count += 1
 
-    # обновляем счётчик
     with open("counter.json", "w") as f:
         json.dump({"count": count}, f)
 
