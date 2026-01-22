@@ -1,119 +1,104 @@
 import os
 import json
 import random
+import asyncio
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 from googleapiclient.http import MediaFileUpload
 
-# --- Telegram auth ---
+# ========= ENV =========
 api_id = int(os.environ["TG_API_ID"])
 api_hash = os.environ["TG_API_HASH"]
-channel = os.environ["TG_CHANNEL"]  # может быть @username или ссылка на приватный канал
+channel = os.environ["TG_CHANNEL"]  # @username или ссылка
 session_str = os.environ["TG_SESSION"]
 yt_token = os.environ["YT_TOKEN"]
 
+# ========= Telegram =========
 client = TelegramClient(StringSession(session_str), api_id, api_hash)
 
-# --- YouTube auth ---
-print("🔑 Авторизация в YouTube...")
+# ========= YouTube =========
 creds = Credentials.from_authorized_user_info(json.loads(yt_token))
 youtube = build("youtube", "v3", credentials=creds)
-print("✅ Авторизация в YouTube успешна.")
 
-# --- Counter ---
+# ========= STATE =========
+if os.path.exists("state.json"):
+    state = json.load(open("state.json"))
+else:
+    state = {"last_message_id": 0}
+
 if os.path.exists("counter.json"):
-    with open("counter.json", "r") as f:
-        counter = json.load(f)
+    counter = json.load(open("counter.json"))
 else:
     counter = {"count": 1}
 
+last_id = state["last_message_id"]
 count = counter["count"]
 
-# --- Список шаблонов названий ---
+# ========= TEXT =========
 TITLES = [
-    "Epic Anime Edit #{num}",
-    "🔥 Best Anime Moments #{num}",
-    "Sad Anime Edit #{num}",
-    "Emotional Anime Scene #{num}",
-    "AMV Edit #{num}",
-    "Legendary Anime Edit #{num}",
-    "Anime Fight Scene #{num}",
-    "Cool Anime Transitions #{num}",
-    "Anime Music Video #{num}",
-    "Top Anime Edit #{num}"
+    "Epic Anime Edit #{n}",
+    "Anime Fight Scene #{n}",
+    "Emotional Anime Edit #{n}",
+    "Best Anime Moments #{n}",
+    "Legendary Anime AMV #{n}",
 ]
 
-# --- Список описаний ---
 DESCRIPTIONS = [
-    "Лучшие аниме эдиты для тебя 🚀",
-    "Подпишись на канал, если любишь аниме ❤️",
-    "Самые красивые сцены в аниме 🎬",
-    "Эмоции в каждом кадре ✨",
-    "Anime edits for true fans 💯"
+    "Лучшие аниме эдиты 🔥",
+    "Anime edits every hour 🎬",
+    "Подпишись если любишь аниме ❤️",
+    "Top anime scenes 💯",
 ]
 
-
+# ========= MAIN =========
 async def main():
-    global count
-    print("🔍 Ищу канал...")
-    try:
-        entity = await client.get_entity(channel)
-        print(f"✅ Канал найден: {entity.id}")
-    except Exception as e:
-        print(f"❌ Ошибка при получении канала: {e}")
-        return
+    global last_id, count
 
-    print("🔍 Ищу последнее видео в канале...")
-    async for message in client.iter_messages(entity, limit=1):
-        print(f"📩 Найдено сообщение: {message.id}")
+    entity = await client.get_entity(channel)
 
-        if message.video or (message.document and message.document.mime_type.startswith("video")):
-            print("🎬 Видео найдено, начинаю скачивание...")
-            path = await message.download_media(file="video.mp4")
+    async for msg in client.iter_messages(entity, min_id=last_id, reverse=True):
+        if msg.video or (msg.document and msg.document.mime_type.startswith("video")):
+            print(f"🎬 Найдено видео ID {msg.id}")
 
-            if not os.path.exists(path):
-                print("⚠️ Ошибка: файл не найден после скачивания!")
-                return
-            else:
-                print(f"📁 Видео скачано: {path}")
+            path = await msg.download_media("video.mp4")
 
-            title = random.choice(TITLES).format(num=count)
-            description = random.choice(DESCRIPTIONS)
-            print(f"📤 Начинаю загрузку на YouTube: {title}")
+            title = random.choice(TITLES).format(n=count)
+            desc = random.choice(DESCRIPTIONS)
 
-            try:
-                request = youtube.videos().insert(
-                    part="snippet,status",
-                    body={
-                        "snippet": {
-                            "title": title,
-                            "description": description,
-                            "tags": ["anime", "edit", "shorts"],
-                            "categoryId": "22"
-                        },
-                        "status": {
-                            "privacyStatus": "public",
-                            "selfDeclaredMadeForKids": False
-                        }
+            request = youtube.videos().insert(
+                part="snippet,status",
+                body={
+                    "snippet": {
+                        "title": title,
+                        "description": desc,
+                        "tags": ["anime", "edit", "shorts"],
+                        "categoryId": "22"
                     },
-                    media_body=MediaFileUpload(path, resumable=True)
-                )
-                response = request.execute()
-                print(f"✅ Успешно загружено! YouTube video ID: {response['id']}")
-                count += 1
+                    "status": {
+                        "privacyStatus": "public",
+                        "selfDeclaredMadeForKids": False
+                    }
+                },
+                media_body=MediaFileUpload(path, resumable=True)
+            )
 
-            except Exception as e:
-                print(f"❌ Ошибка загрузки на YouTube: {e}")
+            request.execute()
+            print(f"✅ Загружено: {title}")
 
-        else:
-            print("⚠️ В последнем сообщении нет видео. Завершаю работу.")
+            last_id = msg.id
+            count += 1
+            break
+    else:
+        print("ℹ️ Новых видео нет")
 
-    # обновляем счётчик
-    with open("counter.json", "w") as f:
-        json.dump({"count": count}, f)
-    print("💾 Счётчик обновлён.")
+    json.dump({"last_message_id": last_id}, open("state.json", "w"))
+    json.dump({"count": count}, open("counter.json", "w"))
+
+# ========= RUN =========
+with client:
+    client.loop.run_until_complete(main())
 
 
 with client:
