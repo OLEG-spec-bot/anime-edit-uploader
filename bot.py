@@ -40,9 +40,9 @@ count = counter["count"]
 TITLES = [
     "Epic Anime Edit #{n}",
     "Anime Fight Scene #{n}",
-    "Emotional Anime Edit #{n}",
+    "Emotional Anime Short #{n}",
     "Best Anime Moments #{n}",
-    "Legendary Anime AMV #{n}",
+    "Legendary Anime Edit #{n}",
 ]
 
 DESCRIPTIONS = [
