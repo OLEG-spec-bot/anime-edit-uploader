@@ -46,10 +46,10 @@ TITLES = [
 ]
 
 DESCRIPTIONS = [
-    "Лучшие аниме эдиты 🔥",
-    "Anime edits every hour 🎬",
-    "Подпишись если любишь аниме ❤️",
-    "Top anime scenes 💯",
+    "Лучшие аниме эдиты 🔥 #Shorts",
+    "Anime edits every hour 🎬 #Shorts",
+    "Подпишись если любишь аниме ❤️ #Shorts",
+    "Top anime scenes 💯 #Shorts",
 ]
 
 # ========= MAIN =========
