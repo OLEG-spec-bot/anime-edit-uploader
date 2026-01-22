@@ -1,0 +1,29 @@
+name: Anime uploader
+
+on:
+  schedule:
+    - cron: "0 * * * *"   # каждый час (UTC)
+  workflow_dispatch:
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: |
+          pip install telethon google-api-python-client google-auth google-auth-oauthlib
+
+      - name: Run bot
+        run: python bot.py
+        env:
+          TG_API_ID: ${{ secrets.TG_API_ID }}
+          TG_API_HASH: ${{ secrets.TG_API_HASH }}
+          TG_SESSION: ${{ secrets.TG_SESSION }}
+          TG_CHANNEL: ${{ secrets.TG_CHANNEL }}
+          YT_TOKEN: ${{ secrets.YT_TOKEN }}
